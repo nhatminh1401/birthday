@@ -49,6 +49,8 @@
 <body>
   <canvas id="canvas"></canvas>
   <!-- <div class="hint">Chạm vào màn hình để tạo hiệu ứng mới 🎉</div> -->
+  <audio id="bg-music" src="audio.mp3" autoplay loop></audio>
+  <button id="music-toggle" style="position:fixed;top:16px;right:16px;z-index:1000;background:rgba(0,0,0,0.5);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:1.5rem;cursor:pointer;">🔊</button>
 
   <script>
     const canvas = document.getElementById("canvas");
@@ -231,6 +233,23 @@
     canvas.addEventListener('mousedown', function(e) {
       spawnParticles(e.clientX, e.clientY);
     });
+
+    // Xử lý nút bật/tắt nhạc
+    const music = document.getElementById('bg-music');
+    const btn = document.getElementById('music-toggle');
+    let playing = true;
+    btn.onclick = function() {
+      if (playing) {
+        music.pause();
+        btn.textContent = '🔇';
+      } else {
+        music.play();
+        btn.textContent = '🔊';
+      }
+      playing = !playing;
+    };
+    // Đảm bảo nhạc tự play khi user tương tác lần đầu (do trình duyệt chặn autoplay)
+    document.body.addEventListener('click', () => { music.play(); }, { once: true });
   </script>
 </body>
 </html>
