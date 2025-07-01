@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chúc mừng sinh nhật - Hiệu ứng 3D</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #2d0036 0%, #000 100%);
+      height: 100%;
+      width: 100vw;
+      touch-action: none;
+    }
+    body {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 1;
+    }
+    .hint {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      font-size: 1.1rem;
+      background: rgba(0,0,0,0.4);
+      padding: 7px 18px;
+      border-radius: 18px;
+      z-index: 2;
+      user-select: none;
+      pointer-events: none;
+    }
+    @media (max-width: 600px) {
+      .hint { font-size: 1rem; padding: 6px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  <!-- <div class="hint">Chạm vào màn hình để tạo hiệu ứng mới 🎉</div> -->
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+
+    const messages = [
+      "💖 Happy Birthday bạn iu 💖",
+      "✨ Chúc bạn tuổi mới rạng rỡ ✨",
+      "🎂 Một đời an nhiên, hạnh phúc 🎂",
+      "🌸 Yêu thương ngập tràn 🌸",
+      "💫 Luôn tỏa sáng nhé 💫",
+      "🎉 Chúc bạn luôn vui vẻ, thành công 🎉",
+      "🌈 Mỗi ngày đều là một niềm vui mới 🌈",
+      "🍀 Gặp nhiều may mắn, bình an 🍀",
+      "🥰 Luôn được yêu thương và che chở 🥰",
+      "🌟 Chúc mọi ước mơ của bạn thành hiện thực 🌟",
+      "🎁 Nhận được thật nhiều quà và lời chúc 🎁",
+      "💐 Chúc bạn luôn xinh đẹp, rạng rỡ 💐",
+      "🦋 Một tuổi mới thật nhiều trải nghiệm tuyệt vời 🦋",
+      "☀️ Ngày mới, tuổi mới, niềm vui mới ☀️",
+    ];
+
+    const directions = ["up", "down", "left", "right"];
+    const colors = [
+      "#ff6ec7", "#ffd700", "#7cf9ff", "#ffb347", "#baffc9", "#f7a8b8"
+    ];
+
+    function randomBetween(a, b) {
+      return a + Math.random() * (b - a);
+    }
+
+    function getFontSize(z) {
+      if (window.innerWidth < 600) {
+        return 24 + z * 36;
+      } else {
+        return 18 + z * 32;
+      }
+    }
+
+    let particles = Array.from({ length: 12 }, (_, i) => {
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const z = Math.random();
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const delay = Math.random() * 1000;
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        z,
+        scale: 0.5 + z * 1.5,
+        text: messages[i % messages.length],
+        speed: 0.3 + z * 1.1,
+        fontSize: getFontSize(z),
+        alpha: 0,
+        maxAlpha: 0.5 + z * 0.5,
+        color,
+        direction,
+        t: Math.random() * Math.PI * 2,
+        delay,
+        born: performance.now() + delay,
+        fadeIn: true
+      };
+    });
+
+    function draw3DText(p, time) {
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 0;
+      ctx.font = `bold ${p.fontSize}px 'Pacifico', 'Arial', cursive`;
+      const waveY = Math.sin(time / 1200 + p.t + p.x / 200) * 2 * p.scale;
+      ctx.fillText(p.text, p.x, p.y + waveY);
+      ctx.restore();
+    }
+
+    function animate(time) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let p of particles) {
+        if (performance.now() > p.born) {
+          if (p.fadeIn && p.alpha < p.maxAlpha) {
+            p.alpha += 0.01 + p.z * 0.02;
+            if (p.alpha > p.maxAlpha) p.alpha = p.maxAlpha;
+          }
+        } else {
+          p.alpha = 0;
+        }
+        draw3DText(p, time);
+        let speed = p.speed * (0.7 + 0.3 * Math.sin(time / 1000 + p.t));
+        switch (p.direction) {
+          case "up":
+            p.y -= speed;
+            if (p.y < -60) {
+              p.y = canvas.height + 60;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "down":
+            p.y += speed;
+            if (p.y > canvas.height + 60) {
+              p.y = -60;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "left":
+            p.x -= speed;
+            if (p.x < -350) {
+              p.x = canvas.width + 120;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "right":
+            p.x += speed;
+            if (p.x > canvas.width + 350) {
+              p.x = -120;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+        }
+        p.t += 0.008 + p.z * 0.01;
+      }
+      requestAnimationFrame(animate);
+    }
+
+    animate(performance.now());
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      // Cập nhật lại fontSize cho particles khi đổi kích thước
+      for (let p of particles) {
+        p.fontSize = getFontSize(p.z);
+      }
+    });
+
+    // Tạo hiệu ứng mới khi chạm hoặc click
+    function spawnParticles(x, y) {
+      for (let i = 0; i < 3; i++) {
+        const direction = directions[Math.floor(Math.random() * directions.length)];
+        const z = Math.random();
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const delay = Math.random() * 500;
+        particles.push({
+          x: x + randomBetween(-30, 30),
+          y: y + randomBetween(-30, 30),
+          z,
+          scale: 0.5 + z * 1.5,
+          text: messages[Math.floor(Math.random() * messages.length)],
+          speed: 0.3 + z * 1.1,
+          fontSize: getFontSize(z),
+          alpha: 0,
+          maxAlpha: 0.5 + z * 0.5,
+          color,
+          direction,
+          t: Math.random() * Math.PI * 2,
+          delay,
+          born: performance.now() + delay,
+          fadeIn: true
+        });
+      }
+      // Giới hạn tổng số particles để không bị lag
+      if (particles.length > 16) particles = particles.slice(-16);
+    }
+
+    canvas.addEventListener('touchstart', function(e) {
+      const touch = e.touches[0];
+      spawnParticles(touch.clientX, touch.clientY);
+    });
+    canvas.addEventListener('mousedown', function(e) {
+      spawnParticles(e.clientX, e.clientY);
+    });
+  </script>
+</body>
+</html>
