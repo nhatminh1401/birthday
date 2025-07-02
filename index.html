@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Chúc mừng sinh nhật - Hiệu ứng 3D</title>
+  <title>Chúc mừng sinh nhật Bé Bự</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
   <style>
@@ -119,6 +119,46 @@
       };
     });
 
+    // Thay vì 1 ảnh, dùng mảng nhiều ảnh
+    const imageSources = [
+      'image.jpg',
+      'image1.png',
+      'image2.png',
+      // Thêm tên file ảnh khác nếu muốn
+    ];
+    const loadedImages = [];
+    let imagesLoaded = 0;
+    for (let src of imageSources) {
+      const img = new Image();
+      img.src = src;
+      img.onload = () => { imagesLoaded++; };
+      loadedImages.push(img);
+    }
+
+    // particles cho ảnh, mỗi particle chọn ngẫu nhiên 1 ảnh
+    let imageParticles = Array.from({ length: 6 }, () => {
+      const direction = directions[Math.floor(Math.random() * directions.length)];
+      const z = Math.random();
+      const delay = Math.random() * 1000;
+      const imgIndex = Math.floor(Math.random() * loadedImages.length);
+      return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        z,
+        scale: 0.5 + z * 1.5,
+        speed: 0.3 + z * 1.1,
+        size: 60 + z * 80,
+        alpha: 0,
+        maxAlpha: 0.5 + z * 0.5,
+        direction,
+        t: Math.random() * Math.PI * 2,
+        delay,
+        born: performance.now() + delay,
+        fadeIn: true,
+        imgIndex
+      };
+    });
+
     function draw3DText(p, time) {
       ctx.save();
       ctx.globalAlpha = p.alpha;
@@ -131,8 +171,78 @@
       ctx.restore();
     }
 
+    // Hàm vẽ ảnh động cho nhiều ảnh
+    function drawImageParticle(p, time) {
+      const img = loadedImages[p.imgIndex];
+      if (!img || !img.complete) return;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      const scale = p.scale * (1 + 0.2 * Math.sin(time / 800 + p.t));
+      const size = p.size * scale;
+      ctx.drawImage(
+        img,
+        p.x - size / 2,
+        p.y - size / 2,
+        size,
+        size
+      );
+      ctx.restore();
+    }
+
     function animate(time) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // Vẽ particles ảnh
+      for (let p of imageParticles) {
+        if (performance.now() > p.born) {
+          if (p.fadeIn && p.alpha < p.maxAlpha) {
+            p.alpha += 0.01 + p.z * 0.02;
+            if (p.alpha > p.maxAlpha) p.alpha = p.maxAlpha;
+          }
+        } else {
+          p.alpha = 0;
+        }
+        drawImageParticle(p, time);
+        let speed = p.speed * (0.7 + 0.3 * Math.sin(time / 1000 + p.t));
+        switch (p.direction) {
+          case "up":
+            p.y -= speed;
+            if (p.y < -60) {
+              p.y = canvas.height + 60;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "down":
+            p.y += speed;
+            if (p.y > canvas.height + 60) {
+              p.y = -60;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "left":
+            p.x -= speed;
+            if (p.x < -120) {
+              p.x = canvas.width + 120;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+          case "right":
+            p.x += speed;
+            if (p.x > canvas.width + 120) {
+              p.x = -120;
+              p.alpha = 0;
+              p.born = performance.now() + p.delay;
+              p.fadeIn = true;
+            }
+            break;
+        }
+        p.t += 0.008 + p.z * 0.01;
+      }
       for (let p of particles) {
         if (performance.now() > p.born) {
           if (p.fadeIn && p.alpha < p.maxAlpha) {
@@ -226,12 +336,41 @@
       if (particles.length > 16) particles = particles.slice(-16);
     }
 
+    // Khi click/touch, thêm particle ảnh mới với ảnh ngẫu nhiên
+    function spawnImageParticles(x, y) {
+      for (let i = 0; i < 1; i++) {
+        const direction = directions[Math.floor(Math.random() * directions.length)];
+        const z = Math.random();
+        const delay = Math.random() * 500;
+        const imgIndex = Math.floor(Math.random() * loadedImages.length);
+        imageParticles.push({
+          x: x + randomBetween(-30, 30),
+          y: y + randomBetween(-30, 30),
+          z,
+          scale: 0.5 + z * 1.5,
+          speed: 0.3 + z * 1.1,
+          size: 60 + z * 80,
+          alpha: 0,
+          maxAlpha: 0.5 + z * 0.5,
+          direction,
+          t: Math.random() * Math.PI * 2,
+          delay,
+          born: performance.now() + delay,
+          fadeIn: true,
+          imgIndex
+        });
+      }
+      if (imageParticles.length > 12) imageParticles = imageParticles.slice(-12);
+    }
+
     canvas.addEventListener('touchstart', function(e) {
       const touch = e.touches[0];
       spawnParticles(touch.clientX, touch.clientY);
+      spawnImageParticles(touch.clientX, touch.clientY);
     });
     canvas.addEventListener('mousedown', function(e) {
       spawnParticles(e.clientX, e.clientY);
+      spawnImageParticles(e.clientX, e.clientY);
     });
 
     // Xử lý nút bật/tắt nhạc
